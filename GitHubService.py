@@ -1,5 +1,7 @@
 import github
 from github import Github, Auth
+from typing import Tuple, Optional
+import re
 
 
 class GitHubService:
@@ -19,6 +21,9 @@ class GitHubService:
 
         return latest_commit
     
+    def get_a_commit(self,sha:str) -> github.Commit.Commit:
+        return self.repo.get_commit(sha)
+    
     # check if the commit just fetched is exactly the same as the previous one. If the same, then don't use it again
     def compare_commits(self, current: github.Commit.Commit) -> bool:
         if current.sha == self.last_fetched_SHA:
@@ -26,11 +31,20 @@ class GitHubService:
         else:
             self.last_fetched_SHA = current.sha
             return True
-        
-    def parse_job_info_from_latest_commit(self):
-        latest_commit = self.get_latest_commit()
-        changes = latest_commit.files[0].patch
-        print(changes)
+
+    
+   
+
+                
+                
+
+
+
+
+
+
+
+
 
     
     
