@@ -1,3 +1,5 @@
+## discord bot invite link: 
+[link](https://discord.com/oauth2/authorize?client_id=1214318236196405319&permissions=19235548953664&scope=bot)
 ### Goals:
 
 To subscribe to github API to retrieve the latest commit to this [New grad 2024 repo](https://github.com/ReaVNaiL/New-Grad-2024)

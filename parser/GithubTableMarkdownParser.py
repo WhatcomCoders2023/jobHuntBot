@@ -1,7 +1,7 @@
 import re
 from typing import Dict, Optional, Tuple, List
-from FileHandler import FileHandler
-from JobPosting import JobPosting
+from parser.FileHandler import FileHandler
+from parser.JobPosting import JobPosting
 
 GITHUB_ADDITION_MARKER = '+'
 
@@ -27,7 +27,7 @@ class GithubTableMarkdownParser:
         lines = FileHandler.read_lines_from_file(self.file_name)
         updated_lines_index = self.get_updated_lines(lines)
         for index in updated_lines_index:
-            job_postings.append(self.get_data_for_job_posting_table(lines[index]))
+            job_postings.append(self.get_data_for_reaVNail_job_posting_table(lines[index]))
 
         return job_postings
 
@@ -39,14 +39,16 @@ class GithubTableMarkdownParser:
         return updated_lines
 
     
-    def get_data_for_job_posting_table(self, line: str) -> JobPosting:
-        rows_data = self.split_table_row(line)
+    def get_data_for_reaVNail_job_posting_table(self, line: str) -> JobPosting:
+        #Link to repo https://github.com/ReaVNaiL/New-Grad-2024
+        name, location, roles, has_sponsor, date_added = self.split_table_row(line)
+        
 
-        company_name, career_site_url = self.get_name_data(rows_data[0])
-        job_location= self.get_location_data(rows_data[1])
-        roles_and_url = self.get_roles_data(rows_data[2])
-        has_sponsorship = self.get_sponsorship_data(rows_data[3])
-        posting_date = self.get_date_data(rows_data[4])
+        company_name, career_site_url = self.get_name_data(name)
+        job_location= self.get_location_data(location)
+        roles_and_url = self.get_roles_data(roles)
+        has_sponsorship = self.get_sponsorship_data(has_sponsor)
+        posting_date = self.get_date_data(date_added)
         job_posting = JobPosting(company_name=company_name, 
                                  career_site=career_site_url, 
                                  locations=job_location, 
@@ -64,7 +66,7 @@ class GithubTableMarkdownParser:
         locations = []
         list_of_locations = self.split_multiple_lines_from_github_table(line)
         for location in list_of_locations:
-            locations.append(location)
+            locations.append(location.strip())
         return locations
     
     def get_roles_data(self, line: str) -> Dict[str,str]:
@@ -78,7 +80,10 @@ class GithubTableMarkdownParser:
         return roles
 
     def get_sponsorship_data(self,line:str) -> str:
-        return self.parse_string_from_github_table(line)
+        result = self.parse_string_from_github_table(line)
+        if result == '-':
+            return 'No 😭'
+        return result
     
     def get_date_data(self,line:str) -> str:
         return self.parse_string_from_github_table(line)

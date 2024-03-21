@@ -1,4 +1,6 @@
-from dataclasses import dataclass, field
+import json 
+
+from dataclasses import dataclass, field, asdict
 from typing import Dict, List
 
 
@@ -10,6 +12,11 @@ class JobPosting:
     has_sponsorship: str
     date_posted: str
     roles: Dict[str,str] = field(default_factory=dict)  #key is role name, and value is role link
+
+    
+    def to_dict(self):
+        # Convert the dataclass instance to a dict
+        return asdict(self)
 
     def __repr__(self) -> str:
         # Formatting the roles dictionary entries properly
@@ -25,8 +32,3 @@ class JobPosting:
         return JobPosting(company_name=company_name, career_site= career_site, locations=locations, has_sponsorship=has_sponsorship, date_posted=date_posted, roles=roles)
 
     
-        
-                
-
-
-
