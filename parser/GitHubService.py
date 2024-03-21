@@ -47,24 +47,20 @@ class GitHubService:
     # return only commits for new job posting
     def filter_commits_with_new_jobs(self, latest_commits: List[github.Commit.Commit]) -> List[github.Commit.Commit]:
         filtered_commits = []
-        # commits_count = len(latest_commits)
-
-        # # sort from oldest to newest
-        # for i in range(commits_count-1,-1,-1):
-        #     commit = latest_commits[i]
-        #     if self.check_commit_with_new_job(commit=commit):
-        #         filtered_commits.append(commit)
-        # return filtered_commits
-    
         for commit in latest_commits:
-             if self.check_commit_with_new_job(commit=commit):
-                filtered_commits.append(commit)
+            try:
+                if self.check_commit_with_new_job(commit=commit):
+                    filtered_commits.append(commit)
+            except Exception as e:
+                print(f"Failed to parse commit with new job: Error {e} for commit {commit} in repo {self.repo_name}")
         return filtered_commits
     
     def extract_new_job_content_from_commits(self, latest_commits_with_job_postings: List[github.Commit.Commit]) -> List[str]:
         filtered_commits_str = []
         for commit in latest_commits_with_job_postings:
-            filtered_commits_str.append(commit.files[0].patch)
+            for f in commit.files: #todo - Lookup github api so that it retrieves the readme instead of looping through files
+                if "readme.md" in f.filename.lower():
+                    filtered_commits_str.append(f.patch)
 
         return filtered_commits_str
     
@@ -90,6 +86,7 @@ class GitHubService:
             if latest_timestamp_from_commits_with_jobs == last_fetched_timestamp_in_db:
                 print(f"No new commits since {latest_timestamp_from_commits_with_jobs}")
                 return None
+        
             
             jobs_contents = self.extract_new_job_content_from_commits(latest_commits_with_job_postings)
             

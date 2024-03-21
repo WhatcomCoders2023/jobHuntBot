@@ -9,8 +9,8 @@ class JobPosting:
     company_name: str
     career_site: str
     locations: List[str]
-    has_sponsorship: str
     date_posted: str
+    has_sponsorship: str = "Unknown"
     roles: Dict[str,str] = field(default_factory=dict)  #key is role name, and value is role link
 
     
@@ -29,6 +29,11 @@ class JobPosting:
     
     @classmethod
     def create_job_posting(company_name: str, career_site: str, locations: str, has_sponsorship: str, date_posted: str,  roles: Dict[str, str]) -> 'JobPosting':
-        return JobPosting(company_name=company_name, career_site= career_site, locations=locations, has_sponsorship=has_sponsorship, date_posted=date_posted, roles=roles)
+        return JobPosting(company_name=company_name, 
+                          career_site= career_site, 
+                          locations=locations, 
+                          has_sponsorship=has_sponsorship, 
+                          date_posted=date_posted, 
+                          roles=roles)
 
     

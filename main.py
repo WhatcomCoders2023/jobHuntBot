@@ -7,7 +7,7 @@ from FireStoreService import FireStoreService
 from bot import JobHuntingBot
 from dotenv import load_dotenv
 from google.cloud import secretmanager
-from constants import REPO_NAMES, DUMMY_FILENAME
+from constants import REPO_NAMES, DUMMY_FILENAME, REPO_NAME_TO_PARSE_FLAG
 
 load_dotenv()
 
@@ -38,6 +38,7 @@ def main(data, context):
     db = FireStoreService(project_id=os.getenv('PROJECT_NAME'))
 
     for repo_name in REPO_NAMES:
+        parse_flag = REPO_NAME_TO_PARSE_FLAG.get(repo_name)
         # 2. fetch job postings from github repo and update datebase
         github_service = GitHubService(github_token, repo_name, db)
         latest_jobs_contents = github_service.get_job_posting()
@@ -53,9 +54,9 @@ def main(data, context):
             # 4. give parsed info to bot to report
             channel_id = int(os.getenv("WHATCOM_CHANNEL_ID")) #TODO figure out why doesn't work in prod
             #channel_id = int(os.getenv("TEST_CHANNEL_ID")) #TODO figure out why doesn't work in prod
-            job_hunting_bot = JobHuntingBot(DUMMY_FILENAME, channel_id)
-            job_hunting_bot.run(bot_token)
+            job_hunting_bot = JobHuntingBot(DUMMY_FILENAME, channel_id, parse_flag)
+            job_hunting_bot.run(bot_token) #TODO efficiently run for multiple repos without getting stuck
 
     
-# if __name__ == '__main__':
-#     main("", "")
+if __name__ == '__main__':
+    main("", "")

@@ -4,9 +4,10 @@ from discord.ext import commands
 from parser.GithubTableMarkdownParser import GithubTableMarkdownParser
 
 class JobHuntingCog(commands.Cog):
-    def __init__(self, bot, filename:str, channel_id:int):
+    def __init__(self, bot, filename:str, channel_id:int, parse_flag: int):
         self.bot = bot
         self.channel_id = channel_id
+        self.parse_flag = parse_flag
         self.job_service = GithubTableMarkdownParser(file_name=filename)
 
     async def send_job_postings(self, channel):
@@ -19,11 +20,13 @@ class JobHuntingCog(commands.Cog):
 
         await channel.send('Hunting for jobs...')
 
-        job_postings = self.job_service.parse()
+        job_postings = self.job_service.parse(self.parse_flag)
         for posting in job_postings:
             # Create a Discord Embed to display the job posting nicely
             embed = Embed(title=" 🚨🚨🚨\t New Job Posting \t 🚨🚨🚨", color=0x00ff00)  # Creates a green embed
-            embed.add_field(name="🏢 Company", value=f"[{posting.company_name}]({posting.career_site})\t", inline=False)
+            embed.add_field(name="🏢 Company", 
+                            value=f"[{posting.company_name}]({posting.career_site})\t" if posting.career_site else posting.company_name, 
+                            inline=False)
             embed.add_field(name="📍 Location(s)", value='\n'.join(posting.locations), inline=True)
             embed.add_field(name="🛂 Sponsorship Available", value=f"{posting.has_sponsorship}\t", inline=False)
             embed.add_field(name="📅 Date Posted", value=f"{posting.date_posted}\t", inline=False)
@@ -34,6 +37,7 @@ class JobHuntingCog(commands.Cog):
                 embed.add_field(name="", value=f"[{role}]({link})", inline=True)
             
             await channel.send(embed=embed)
+        await self.bot.close() #TODO - Hacky way to turn off bot for a bit
 
     @commands.Cog.listener()
     async def on_ready(self):
