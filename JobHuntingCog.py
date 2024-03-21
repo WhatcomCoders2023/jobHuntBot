@@ -10,9 +10,12 @@ class JobHuntingCog(commands.Cog):
         self.job_service = GithubTableMarkdownParser(file_name=filename)
 
     async def send_job_postings(self, channel):
-        if channel is None:
-            print(f"Channel with ID {self.channel_id} not found.")
-            return #throw exception
+        try:
+            if channel is None:
+                raise Exception(f"Channel with ID {self.channel_id} not found.")
+        except Exception as e:
+            print(e)
+            raise
 
         await channel.send('Hunting for jobs...')
 

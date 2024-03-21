@@ -4,13 +4,12 @@ from typing import Union
 
 TIMESTAMP = "last_timestamp"
 class FireStoreService:
-    def __init__(self, project_id, database="github-commit-data", collection_name="latest_commit", document_id="F2NvrBYcwL0Yxe2UmN65") -> None:
-        self.db = firestore.Client(project=project_id,database=database)
+    def __init__(self, project_id: str, collection_name="latest_commit", database="github-commit-data"):
+        self.db = firestore.Client(project=project_id, database=database)
         self.collection_name = collection_name
-        self.document_id = document_id
     
-    def fetch_last_timestamp(self) -> Union[datetime, None]:
-        doc_ref = self.db.collection(self.collection_name).document(self.document_id)       
+    def fetch_last_timestamp(self, document_id: str) -> Union[datetime, None]:
+        doc_ref = self.db.collection(self.collection_name).document(document_id)       
 
         try:
             doc = doc_ref.get()
@@ -29,9 +28,9 @@ class FireStoreService:
             print(f"An error occured: {e}")
             return None
 
-    def update_last_timestamp(self, new_timestamp: datetime):
+    def update_last_timestamp(self, document_id: str, new_timestamp: datetime):
         """Updates the last timestamp in Datastore."""
-        doc_ref = self.db.collection(self.collection_name).document(self.document_id)
+        doc_ref = self.db.collection(self.collection_name).document(document_id)
         try:
             doc_ref.update({TIMESTAMP: new_timestamp})
             print(f"Last timestamp updated to {new_timestamp}")

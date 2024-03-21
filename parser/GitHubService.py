@@ -1,16 +1,17 @@
 import github
 from github import Github, Auth
-from google.cloud import datastore
 from typing import List, Tuple
 from datetime import datetime
+from FireStoreService import FireStoreService
+from constants import REPO_NAME_TO_DOC_ID
 
 class GitHubService:
-    def __init__(self, token: str, repo_name: str, last_timestamp_in_db: datetime):
+    def __init__(self, token: str, repo_name: str, db: FireStoreService):
         auth = Auth.Token(token)
         self.github = Github(auth=auth)
+        self.repo_name = repo_name
         self.repo = self.github.get_repo(f'{repo_name}')
-        self.gcp_client = datastore.Client()
-        self.last_fetched_timestamp = last_timestamp_in_db
+        self.db = db
 
     def get_latest_commit(self, branch_name='main') -> github.Commit.Commit:
         branch = self.repo.get_branch(branch_name)
@@ -36,13 +37,14 @@ class GitHubService:
         else:
             self.last_fetched_SHA = current.sha
             return True
-        
+    
+    # TODO: this may be not correct for all cases
     def check_commit_with_new_job(self,commit:github.Commit.Commit) -> bool:
         lines_added = commit.files[0].additions
         lined_deleted = commit.files[0].deletions
         return lines_added >= 1 and lined_deleted == 0
         
-    # return changes from commits that add new jobs
+    # return only commits for new job posting
     def filter_commits_with_new_jobs(self, latest_commits: List[github.Commit.Commit]) -> List[github.Commit.Commit]:
         filtered_commits = []
         # commits_count = len(latest_commits)
@@ -66,23 +68,41 @@ class GitHubService:
 
         return filtered_commits_str
     
-    def run(self) -> Tuple[List[str], str]:
-        latest_commits = self.get_latest_commits_since_timestamp(self.last_fetched_timestamp)
-        latest_commits_with_job_postings = self.filter_commits_with_new_jobs(latest_commits)
-        latest_timestamp_from_commits =self.get_latest_timestamp_from_commits(latest_commits_with_job_postings)
-        if latest_timestamp_from_commits == self.last_fetched_timestamp:
-            print(f"No new jobs since {latest_timestamp_from_commits}")
-            return None, None #TODO: gracefully exit entire program 
+    def get_job_posting(self) -> List[str]:
+        try:
+            document_id = REPO_NAME_TO_DOC_ID.get(self.repo_name)
+            last_fetched_timestamp_in_db = self.db.fetch_last_timestamp(document_id)
+            latest_commits = self.get_latest_commits_since_timestamp(last_fetched_timestamp_in_db)
+            if not latest_commits:
+                print(f"There are no new commits since {last_fetched_timestamp_in_db}")
+                return None
+            
+            latest_timestamp_from_commits = self.get_latest_timestamp_from_commits(latest_commits)
+            self.db.update_last_timestamp(document_id, latest_timestamp_from_commits) #TODO - Be aware that the discord bot could fail and the database could update
+
+            latest_commits_with_job_postings = self.filter_commits_with_new_jobs(latest_commits)
+            if not latest_commits_with_job_postings:
+                print(f"There're new commits, but not any for new jobs from {last_fetched_timestamp_in_db} to {latest_timestamp_from_commits}")
+                return None
+            
+            latest_timestamp_from_commits_with_jobs =self.get_latest_timestamp_from_commits(latest_commits_with_job_postings)
+
+            if latest_timestamp_from_commits_with_jobs == last_fetched_timestamp_in_db:
+                print(f"No new commits since {latest_timestamp_from_commits_with_jobs}")
+                return None
+            
+            jobs_contents = self.extract_new_job_content_from_commits(latest_commits_with_job_postings)
+            
+            return jobs_contents
         
-        latest_jobs_contents = self.extract_new_job_content_from_commits(latest_commits_with_job_postings)
-        
-        return latest_jobs_contents, latest_timestamp_from_commits
+        except Exception as e:
+            print(f"error: {e}")
+            return None
     
     # NOTE: commits list should be sorted from oldest to newest
     def get_latest_timestamp_from_commits(self,commits:List[github.Commit.Commit]) -> datetime:
         latest_commit = commits[0]
-        print(f"latest timestamp {latest_commit.commit.author.date}")
-        print(f"latest timestamp from commit type is {type(latest_commit.commit.author.date)}")
+        print(f"latest timestamp from commits{latest_commit.commit.author.date}")
         return latest_commit.commit.author.date
 
 
