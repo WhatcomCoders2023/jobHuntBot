@@ -1,14 +1,15 @@
 # job_hunting_cog.py
 from discord import Embed
 from discord.ext import commands
-from parser.GithubTableMarkdownParser import GithubTableMarkdownParser
+from gh_parser.GithubTableMarkdownParser import GithubTableMarkdownParser
+from gh_parser.JobPosting import JobPosting
+from typing import List
 
 class JobHuntingCog(commands.Cog):
-    def __init__(self, bot, filename:str, channel_id:int, parse_flag: int):
+    def __init__(self, bot, channel_id:int, job_postings: List[JobPosting]):
         self.bot = bot
         self.channel_id = channel_id
-        self.parse_flag = parse_flag
-        self.job_service = GithubTableMarkdownParser(file_name=filename)
+        self.job_postings = job_postings
 
     async def send_job_postings(self, channel):
         try:
@@ -20,8 +21,7 @@ class JobHuntingCog(commands.Cog):
 
         await channel.send('Hunting for jobs...')
 
-        job_postings = self.job_service.parse(self.parse_flag)
-        for posting in job_postings:
+        for posting in self.job_postings:
             # Create a Discord Embed to display the job posting nicely
             embed = Embed(title=" 🚨🚨🚨\t New Job Posting \t 🚨🚨🚨", color=0x00ff00)  # Creates a green embed
             embed.add_field(name="🏢 Company", 

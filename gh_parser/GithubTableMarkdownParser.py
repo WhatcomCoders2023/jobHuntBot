@@ -1,18 +1,32 @@
 import re
+from datetime import datetime
 from typing import Dict, Optional, Tuple, List
-from parser.FileHandler import FileHandler
-from parser.JobPosting import JobPosting
+from gh_parser.FileHandler import FileHandler
+from gh_parser.JobPosting import JobPosting
 
 GITHUB_ADDITION_MARKER = '+'
 
-
+MONTHS = {'jan': 0, 
+          'feb': 1, 
+          'mar': 2., 
+          'apr': 3,
+          'may': 4, 
+          'jun': 5, 
+          'jul': 6, 
+          'aug': 7, 
+          'sep': 8, 
+          'oct': 9, 
+          'nov': 10, 
+          'dec': 11}
 
 
 class GithubTableMarkdownParser:
     def __init__(self, 
-                 file_name:str
+                 file_name: str,
+                 last_timestamp_in_db: datetime,
                  ) -> None:
         self.file_name = file_name
+        self.last_timestamp_in_db = last_timestamp_in_db
 
     def parse(self, parse_flag: int) -> List[JobPosting]:
         # fetch the latest commit
@@ -31,13 +45,45 @@ class GithubTableMarkdownParser:
         updated_lines_index = self.get_updated_lines(lines)
         for index in updated_lines_index:
             if parse_flag == 0:
-                job_postings.append(self.get_data_for_reaVNail_job_posting_table(lines[index]))
+                job_posting = self.get_data_for_reaVNail_job_posting_table(lines[index])
+                if self.is_valid_job_posting(job_posting):
+                    job_postings.append(job_posting)
             elif parse_flag == 1:
-                job_postings.append(self.get_data_for_Simplify_Internship_Summer_2024_job_posting_table(lines[index]))
+                job_posting = self.get_data_for_Simplify_Internship_Summer_2024_job_posting_table(lines[index])
+                if self.is_valid_job_posting(job_posting):
+                    job_postings.append(job_posting)
             else:
                 raise Exception("This is an invalid repo, please properly configure which repo we are parsing and what logic to use in GithubTableMarkdownParser")
 
         return job_postings
+    
+    def is_valid_job_posting(self, job_posting: JobPosting) -> bool:
+        print(self.last_timestamp_in_db)
+        try: 
+            if not job_posting.company_name:
+                return False
+            
+            if job_posting.date_posted:
+                #For format month/day/year
+                if "/" in job_posting.date_posted:
+                    month, day, year = job_posting.split("/")
+                    if self.last_timestamp_in_db.month > int(month):
+                        return False
+                    if self.last_timestamp_in_db.day > int(day):
+                        return False
+                else:
+                    #For format {Month Day}
+                    for m, i in MONTHS.items(): #key = month, value = index of month
+                        if m in job_posting.date_posted.lower():
+                            month, day = job_posting.date_posted.split()
+                            if self.last_timestamp_in_db.month > int(i)+1:
+                                return False
+                            if self.last_timestamp_in_db.day > int(day.strip()):
+                                return False
+            
+            return True
+        except Exception as e:
+            print(f"Error in validing job posting, error: {e} for job posting: {job_posting}")
 
     def get_updated_lines(self, lines: List[str]) -> List[int]:
         updated_lines = []

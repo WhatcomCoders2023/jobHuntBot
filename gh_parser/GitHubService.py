@@ -12,6 +12,7 @@ class GitHubService:
         self.repo_name = repo_name
         self.repo = self.github.get_repo(f'{repo_name}')
         self.db = db
+        self.last_fetched_timestamp_in_db = None
 
     def get_latest_commit(self, branch_name='main') -> github.Commit.Commit:
         branch = self.repo.get_branch(branch_name)
@@ -26,7 +27,39 @@ class GitHubService:
     def get_a_commit(self,sha:str) -> github.Commit.Commit:
         return self.repo.get_commit(sha)
     
-    # NOTE: timestamp must be in ISO8601 UTC format, no Zulu
+    def get_job_posting(self) -> List[str]:
+        try:
+            document_id = REPO_NAME_TO_DOC_ID.get(self.repo_name)
+            last_fetched_timestamp_in_db = self.db.fetch_last_timestamp(document_id)
+            self.last_fetched_timestamp_in_db = last_fetched_timestamp_in_db #todo - Bad but fix later
+            new_commits = self.get_latest_commits_since_timestamp(last_fetched_timestamp_in_db)
+            if not new_commits:
+                print(f"There are no new commits since {last_fetched_timestamp_in_db}")
+                return None
+            
+            latest_timestamp_from_new_commits = self.get_latest_timestamp_from_commits(new_commits)
+            self.db.update_last_timestamp(document_id, latest_timestamp_from_new_commits) #TODO - Be aware that the discord bot could fail and the database could update
+
+            commits_with_job_postings = self.filter_commits_with_new_jobs(new_commits)
+            if not commits_with_job_postings:
+                print(f"There're new commits, but not any for new jobs from {last_fetched_timestamp_in_db} to {latest_timestamp_from_new_commits}")
+                return None
+            
+            latest_timestamp_from_commits_with_jobs = self.get_latest_timestamp_from_commits(commits_with_job_postings)
+
+            if latest_timestamp_from_commits_with_jobs == last_fetched_timestamp_in_db:
+                print(f"No new commits since {latest_timestamp_from_commits_with_jobs}")
+                return None
+        
+            jobs_contents = self.extract_new_job_content_from_commits(commits_with_job_postings)
+            
+            return jobs_contents
+        
+        except Exception as e:
+            print(f"error: {e}")
+            return None
+        
+        # NOTE: timestamp must be in ISO8601 UTC format, no Zulu
     def get_latest_commits_since_timestamp(self, timestamp:datetime) -> List[github.Commit.Commit]:
         return self.repo.get_commits(since=timestamp)
     
@@ -39,21 +72,30 @@ class GitHubService:
             return True
     
     # TODO: this may be not correct for all cases
-    def check_commit_with_new_job(self,commit:github.Commit.Commit) -> bool:
-        lines_added = commit.files[0].additions
-        lined_deleted = commit.files[0].deletions
+    def check_commit_with_new_job(self,commit:github.Commit.Commit, readme_index: int) -> bool:
+        lines_added = commit.files[readme_index].additions
+        lined_deleted = commit.files[readme_index].deletions
         return lines_added >= 1 and lined_deleted == 0
         
     # return only commits for new job posting
-    def filter_commits_with_new_jobs(self, latest_commits: List[github.Commit.Commit]) -> List[github.Commit.Commit]:
+    def filter_commits_with_new_jobs(self, 
+                                     new_commits: List[github.Commit.Commit],
+                                     ) -> List[github.Commit.Commit]:
         filtered_commits = []
-        for commit in latest_commits:
-            try:
-                if self.check_commit_with_new_job(commit=commit):
+        for commit in new_commits:
+            try: #todo - In the future, make it so only the commit that fails throws an exception and we skip it but the other ones keep getting processed
+                readme_index = self.get_readme_index(commit)
+                if readme_index >= 0 and self.check_commit_with_new_job(commit, readme_index):
                     filtered_commits.append(commit)
             except Exception as e:
                 print(f"Failed to parse commit with new job: Error {e} for commit {commit} in repo {self.repo_name}")
         return filtered_commits
+    
+    def get_readme_index(self, commit: github.Commit.Commit) -> int:
+        for i, f in enumerate(commit.files):
+            if "readme.md" in f.filename.lower():
+                return i
+        return -1 #todo - maybe this should throw exception? I'm not sure
     
     def extract_new_job_content_from_commits(self, latest_commits_with_job_postings: List[github.Commit.Commit]) -> List[str]:
         filtered_commits_str = []
@@ -63,38 +105,6 @@ class GitHubService:
                     filtered_commits_str.append(f.patch)
 
         return filtered_commits_str
-    
-    def get_job_posting(self) -> List[str]:
-        try:
-            document_id = REPO_NAME_TO_DOC_ID.get(self.repo_name)
-            last_fetched_timestamp_in_db = self.db.fetch_last_timestamp(document_id)
-            latest_commits = self.get_latest_commits_since_timestamp(last_fetched_timestamp_in_db)
-            if not latest_commits:
-                print(f"There are no new commits since {last_fetched_timestamp_in_db}")
-                return None
-            
-            latest_timestamp_from_commits = self.get_latest_timestamp_from_commits(latest_commits)
-            self.db.update_last_timestamp(document_id, latest_timestamp_from_commits) #TODO - Be aware that the discord bot could fail and the database could update
-
-            latest_commits_with_job_postings = self.filter_commits_with_new_jobs(latest_commits)
-            if not latest_commits_with_job_postings:
-                print(f"There're new commits, but not any for new jobs from {last_fetched_timestamp_in_db} to {latest_timestamp_from_commits}")
-                return None
-            
-            latest_timestamp_from_commits_with_jobs =self.get_latest_timestamp_from_commits(latest_commits_with_job_postings)
-
-            if latest_timestamp_from_commits_with_jobs == last_fetched_timestamp_in_db:
-                print(f"No new commits since {latest_timestamp_from_commits_with_jobs}")
-                return None
-        
-            
-            jobs_contents = self.extract_new_job_content_from_commits(latest_commits_with_job_postings)
-            
-            return jobs_contents
-        
-        except Exception as e:
-            print(f"error: {e}")
-            return None
     
     # NOTE: commits list should be sorted from oldest to newest
     def get_latest_timestamp_from_commits(self,commits:List[github.Commit.Commit]) -> datetime:
