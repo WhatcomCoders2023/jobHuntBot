@@ -66,7 +66,7 @@ class GithubTableMarkdownParser:
             if job_posting.date_posted:
                 #For format month/day/year
                 if "/" in job_posting.date_posted:
-                    month, day, year = job_posting.split("/")
+                    month, day, year = job_posting.date_posted.split("/")
                     if self.last_timestamp_in_db.month > int(month):
                         return False
                     if self.last_timestamp_in_db.day > int(day):
@@ -83,7 +83,7 @@ class GithubTableMarkdownParser:
             
             return True
         except Exception as e:
-            print(f"Error in validing job posting, error: {e} for job posting: {job_posting}")
+            raise Exception(f"Error in validing job posting, error: {e} for job posting: {job_posting}")
 
     def get_updated_lines(self, lines: List[str]) -> List[int]:
         updated_lines = []
@@ -94,7 +94,9 @@ class GithubTableMarkdownParser:
 
     
     def get_data_for_reaVNail_job_posting_table(self, line: str) -> JobPosting:
-        #Link to repo https://github.com/ReaVNaiL/New-Grad-2024
+        ''' 
+            Link to repo https://github.com/ReaVNaiL/New-Grad-2024
+        '''
         name, location, roles, has_sponsor, date_added = self.split_table_row(line)
         
 
@@ -113,7 +115,9 @@ class GithubTableMarkdownParser:
     
         
     def get_data_for_Simplify_Internship_Summer_2024_job_posting_table(self, line: str) -> JobPosting:
-        #Link to repo https://github.com/SimplifyJobs/Summer2024-Internships
+        '''
+            Link to repo https://github.com/SimplifyJobs/Summer2024-Internships
+        '''
         name, role, location, application_link, date_added = self.split_table_row(line)
 
         company_name, company_url = self.get_name_data(name)

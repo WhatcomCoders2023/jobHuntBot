@@ -8,7 +8,6 @@ class FileHandler:
         try:
             with open(filename,"w", encoding='utf-8') as file:
                 file.write(updates)
-            print("File saved successfully")
         except Exception as e:
             print(f"An error occurred while saving the file: {e}")
     

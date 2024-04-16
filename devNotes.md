@@ -1,5 +1,11 @@
-## discord bot invite link: 
+## discord bot invite link:
+
 [link](https://discord.com/oauth2/authorize?client_id=1214318236196405319&permissions=19235548953664&scope=bot)
+
+## command to deploy
+
+`gcloud functions deploy discord_bot --runtime python310 --trigger-topic=discord_bot_trigger --entry-point=main   `
+
 ### Goals:
 
 To subscribe to github API to retrieve the latest commit to this [New grad 2024 repo](https://github.com/ReaVNaiL/New-Grad-2024)
@@ -39,11 +45,11 @@ So is there a way to make the bot subscribe to github API that notifies whenever
 
 from enum import Enum, auto
 
-
 # a data in the table can be a string, a embedded string link, or a image embedded with link
+
 class GithubTableDataFormatEnum(Enum) :
-    STRING = auto() # normal parsing
-    STRING_LIST = auto() # parsing multple line split by <br>
-    EMBEDDED_STRING_LINK = auto() # parsing with [name](url) format
-    EMBEDDED_STRING_LINK_LIST = auto() # parsing multiple strings with with [name](url) format
-    EMBEDDED_IMAGE_LINK = auto() # parsing with <img><href> format
+STRING = auto() # normal parsing
+STRING_LIST = auto() # parsing multple line split by <br>
+EMBEDDED_STRING_LINK = auto() # parsing with [name](url) format
+EMBEDDED_STRING_LINK_LIST = auto() # parsing multiple strings with with [name](url) format
+EMBEDDED_IMAGE_LINK = auto() # parsing with <img><href> format
