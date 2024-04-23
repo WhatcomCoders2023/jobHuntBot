@@ -1,15 +1,20 @@
 # bot.py or main bot file
-import os
 import discord
 from discord.ext import commands
-from dotenv import load_dotenv
 from JobHuntingCog import JobHuntingCog  # Make sure to import your cog
-from datetime import datetime
 from typing import List
 from gh_parser.JobPosting import JobPosting
 
+
 class JobHuntingBot(commands.Bot):
-    def __init__(self, filename: str, channel_id: int, job_postings: List[JobPosting], command_prefix="!", intents=discord.Intents.all()):
+    def __init__(
+        self,
+        filename: str,
+        channel_id: int,
+        job_postings: List[JobPosting],
+        command_prefix="!",
+        intents=discord.Intents.all(),
+    ):
         self.filename = filename
         self.channel_id = channel_id
         self.job_postings = job_postings
@@ -19,4 +24,4 @@ class JobHuntingBot(commands.Bot):
         # Load your cogs here
         await self.add_cog(JobHuntingCog(self, self.channel_id, self.job_postings))
         # Setup actions like sending a startup message can also go here
-        print('Bot setup complete!')
+        print("Bot setup complete!")
