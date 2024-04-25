@@ -7,7 +7,8 @@ from constants import REPO_NAME_TO_DOC_ID
 
 
 class GitHubService:
-    def __init__(self, token: str, repo_name: str, db: FireStoreService):
+    def __init__(self, logger, token: str, repo_name: str, db: FireStoreService):
+        self.logger = logger
         auth = Auth.Token(token)
         self.github = Github(auth=auth)
         self.repo_name = repo_name
@@ -19,9 +20,9 @@ class GitHubService:
         branch = self.repo.get_branch(branch_name)
         latest_commit = self.repo.get_commit(sha=branch.commit.sha)
 
-        print(f"Latest Commit SHA: {latest_commit.sha}")
-        print(f"Commit Message:{latest_commit.commit.message}")
-        print(f"Changes made:{latest_commit.files[0].patch}")
+        self.logger.info(f"Latest Commit SHA: {latest_commit.sha}")
+        self.logger.info(f"Commit Message:{latest_commit.commit.message}")
+        self.logger.info(f"Changes made:{latest_commit.files[0].patch}")
 
         return latest_commit
 
@@ -50,7 +51,9 @@ class GitHubService:
                 last_fetched_timestamp_in_db
             )
             if not new_commits:
-                print(f"There are no new commits since {last_fetched_timestamp_in_db}")
+                self.logger.info(
+                    f"There are no new commits since {last_fetched_timestamp_in_db}"
+                )
                 return None
 
             latest_timestamp_from_new_commits = self.get_latest_timestamp_from_commits(
@@ -62,7 +65,7 @@ class GitHubService:
 
             commits_with_job_postings = self.filter_commits_with_new_jobs(new_commits)
             if not commits_with_job_postings:
-                print(
+                self.logger.info(
                     f"There're new commits, but not any for new jobs from {last_fetched_timestamp_in_db} to {latest_timestamp_from_new_commits}"
                 )
                 return None
@@ -72,7 +75,9 @@ class GitHubService:
             )
 
             if latest_timestamp_from_commits_with_jobs == last_fetched_timestamp_in_db:
-                print(f"No new commits since {latest_timestamp_from_commits_with_jobs}")
+                self.logger.info(
+                    f"No new commits since {latest_timestamp_from_commits_with_jobs}"
+                )
                 return None
 
             jobs_contents = self.extract_new_job_content_from_commits(
@@ -82,7 +87,7 @@ class GitHubService:
             return jobs_contents
 
         except Exception as e:
-            print(f"error: {e}")
+            self.logger.error(f"error: {e}")
             return None
 
         # NOTE: timestamp must be in ISO8601 UTC format, no Zulu
@@ -133,7 +138,7 @@ class GitHubService:
                 ):
                     filtered_commits.append(commit)
             except Exception as e:
-                print(
+                self.logger.error(
                     f"Failed to parse commit with new job: Error {e} for commit {commit} in repo {self.repo_name}"
                 )
         return filtered_commits
@@ -178,7 +183,9 @@ class GitHubService:
         therefore, to get the latest timestamp, get it from the first commit in the list
         """
         latest_commit = commits[0]
-        print(f"latest timestamp from commits{latest_commit.commit.author.date}")
+        self.logger.info(
+            f"Latest timestamp from commits {latest_commit.commit.author.date}"
+        )
         return latest_commit.commit.author.date
 
     # 1. every period, fetch a new list of latest commits since last fetched timestamp
