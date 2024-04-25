@@ -4,27 +4,30 @@ from typing import Dict, Optional, Tuple, List
 from gh_parser.FileHandler import FileHandler
 from gh_parser.JobPosting import JobPosting
 
-GITHUB_ADDITION_MARKER = '+'
+GITHUB_ADDITION_MARKER = "+"
 
-MONTHS = {'jan': 0, 
-          'feb': 1, 
-          'mar': 2., 
-          'apr': 3,
-          'may': 4, 
-          'jun': 5, 
-          'jul': 6, 
-          'aug': 7, 
-          'sep': 8, 
-          'oct': 9, 
-          'nov': 10, 
-          'dec': 11}
+MONTHS = {
+    "jan": 0,
+    "feb": 1,
+    "mar": 2.0,
+    "apr": 3,
+    "may": 4,
+    "jun": 5,
+    "jul": 6,
+    "aug": 7,
+    "sep": 8,
+    "oct": 9,
+    "nov": 10,
+    "dec": 11,
+}
 
 
 class GithubTableMarkdownParser:
-    def __init__(self, 
-                 file_name: str,
-                 last_timestamp_in_db: datetime,
-                 ) -> None:
+    def __init__(
+        self,
+        file_name: str,
+        last_timestamp_in_db: datetime,
+    ) -> None:
         self.file_name = file_name
         self.last_timestamp_in_db = last_timestamp_in_db
 
@@ -38,7 +41,7 @@ class GithubTableMarkdownParser:
         # test_changes = self.repo.get_commit('ceb7fdb92a994b589d1fe1b1a0dd4a0b4c2edec9').files[0].patch
         # test_changes = self.repo.get_commit('51dd5d7').files[0].patch
         # self.save_latest_update_into_file(test_changes)
-        
+
         job_postings = []
         # read job info from the file and create JobPosting object
         lines = FileHandler.read_lines_from_file(self.file_name)
@@ -49,22 +52,28 @@ class GithubTableMarkdownParser:
                 if self.is_valid_job_posting(job_posting):
                     job_postings.append(job_posting)
             elif parse_flag == 1:
-                job_posting = self.get_data_for_Simplify_Internship_Summer_2024_job_posting_table(lines[index])
+                job_posting = (
+                    self.get_data_for_Simplify_Internship_Summer_2024_job_posting_table(
+                        lines[index]
+                    )
+                )
                 if self.is_valid_job_posting(job_posting):
                     job_postings.append(job_posting)
             else:
-                raise Exception("This is an invalid repo, please properly configure which repo we are parsing and what logic to use in GithubTableMarkdownParser")
+                raise Exception(
+                    "This is an invalid repo, please properly configure which repo we are parsing and what logic to use in GithubTableMarkdownParser"
+                )
 
         return job_postings
-    
+
     def is_valid_job_posting(self, job_posting: JobPosting) -> bool:
         print(self.last_timestamp_in_db)
-        try: 
+        try:
             if not job_posting.company_name:
                 return False
-            
+
             if job_posting.date_posted:
-                #For format month/day/year
+                # For format month/day/year
                 if "/" in job_posting.date_posted:
                     month, day, year = job_posting.date_posted.split("/")
                     if self.last_timestamp_in_db.month > int(month):
@@ -72,18 +81,20 @@ class GithubTableMarkdownParser:
                     if self.last_timestamp_in_db.day > int(day):
                         return False
                 else:
-                    #For format {Month Day}
-                    for m, i in MONTHS.items(): #key = month, value = index of month
+                    # For format {Month Day}
+                    for m, i in MONTHS.items():  # key = month, value = index of month
                         if m in job_posting.date_posted.lower():
                             month, day = job_posting.date_posted.split()
-                            if self.last_timestamp_in_db.month > int(i)+1:
+                            if self.last_timestamp_in_db.month > int(i) + 1:
                                 return False
                             if self.last_timestamp_in_db.day > int(day.strip()):
                                 return False
-            
+
             return True
         except Exception as e:
-            raise Exception(f"Error in validing job posting, error: {e} for job posting: {job_posting}")
+            raise Exception(
+                f"Error in validing job posting, error: {e} for job posting: {job_posting}"
+            )
 
     def get_updated_lines(self, lines: List[str]) -> List[int]:
         updated_lines = []
@@ -92,49 +103,53 @@ class GithubTableMarkdownParser:
                 updated_lines.append(i)
         return updated_lines
 
-    
     def get_data_for_reaVNail_job_posting_table(self, line: str) -> JobPosting:
-        ''' 
-            Link to repo https://github.com/ReaVNaiL/New-Grad-2024
-        '''
+        """
+        Link to repo https://github.com/ReaVNaiL/New-Grad-2024
+        """
         name, location, roles, has_sponsor, date_added = self.split_table_row(line)
-        
 
         company_name, career_site_url = self.get_name_data(name)
-        job_location= self.parse_list_of_strings(location)
+        job_location = self.parse_list_of_strings(location)
         roles_and_url = self.parse_list_of_url_embedded_strings(roles)
         has_sponsorship = self.get_sponsorship_data(has_sponsor)
         posting_date = self.get_date_data(date_added)
-        job_posting = JobPosting(company_name=company_name, 
-                                 career_site=career_site_url, 
-                                 locations=job_location, 
-                                 roles=roles_and_url,
-                                 date_posted=posting_date,
-                                 has_sponsorship=has_sponsorship)
+        job_posting = JobPosting(
+            company_name=company_name,
+            career_site=career_site_url,
+            locations=job_location,
+            roles=roles_and_url,
+            date_posted=posting_date,
+            has_sponsorship=has_sponsorship,
+        )
         return job_posting
-    
-        
-    def get_data_for_Simplify_Internship_Summer_2024_job_posting_table(self, line: str) -> JobPosting:
-        '''
-            Link to repo https://github.com/SimplifyJobs/Summer2024-Internships
-        '''
+
+    def get_data_for_Simplify_Internship_Summer_2024_job_posting_table(
+        self, line: str
+    ) -> JobPosting:
+        """
+        Link to repo https://github.com/SimplifyJobs/Summer2024-Internships
+        """
         name, role, location, application_link, date_added = self.split_table_row(line)
 
         company_name, company_url = self.get_name_data(name)
         role = self.parse_string_from_github_table(role)
         role_url = self.parse_link_from_href(application_link)
-        roles = {role: role_url} #TODO: Hacky way to get around schema we made, fix later
+        roles = {
+            role: role_url
+        }  # TODO: Hacky way to get around schema we made, fix later
         location = self.parse_string_from_github_table(location)
         posting_date = self.get_date_data(date_added)
-        job_location= self.parse_list_of_strings(location)
+        job_location = self.parse_list_of_strings(location)
 
-        job_posting = JobPosting(company_name=company_name, 
-                                 career_site=company_url, 
-                                 locations=job_location, 
-                                 roles=roles,
-                                 date_posted=posting_date)
+        job_posting = JobPosting(
+            company_name=company_name,
+            career_site=company_url,
+            locations=job_location,
+            roles=roles,
+            date_posted=posting_date,
+        )
         return job_posting
-    
 
     def get_name_data(self, line: str) -> Tuple[str, str]:
         result = self.parse_string_and_link_from_github_table(line)
@@ -144,15 +159,15 @@ class GithubTableMarkdownParser:
         else:
             name, url = result
             return (name, url)
-    
+
     def parse_list_of_strings(self, line: str) -> List[str]:
         result = []
         list_of_strings = self.split_multiple_lines_from_github_table(line)
         for s in list_of_strings:
             result.append(s.strip())
         return result
-    
-    def parse_list_of_url_embedded_strings(self, line: str) -> Dict[str,str]:
+
+    def parse_list_of_url_embedded_strings(self, line: str) -> Dict[str, str]:
         result = {}
         list_of_url_embedded_strings = self.split_multiple_lines_from_github_table(line)
         for embedded_str in list_of_url_embedded_strings:
@@ -162,43 +177,44 @@ class GithubTableMarkdownParser:
                 result[s] = url
         return result
 
-    def get_sponsorship_data(self,line:str) -> str:
+    def get_sponsorship_data(self, line: str) -> str:
         result = self.parse_string_from_github_table(line)
-        if result == '-':
-            return 'No 😭'
+        if result == "-":
+            return "No 😭"
         return result
-    
-    def get_date_data(self,line:str) -> str:
+
+    def get_date_data(self, line: str) -> str:
         return self.parse_string_from_github_table(line)
-    
 
     # strip leading and trailing whitespace
     def parse_string_from_github_table(self, string: str) -> str:
         # Parse github table data that is only a string
         return string.strip()
-    
+
     # for pattern: [name](url_link)
-    def parse_string_and_link_from_github_table(self, string: str) -> Optional[Tuple[str, str]]:
-        pattern = r'\[([^\]]+)\]\(([^)]*)\)'
+    def parse_string_and_link_from_github_table(
+        self, string: str
+    ) -> Optional[Tuple[str, str]]:
+        pattern = r"\[([^\]]+)\]\(([^)]*)\)"
         match = re.search(pattern, string)
         # NOTE: closed role will have empty link: [closed_role_name](), hence parsing result will be None
-        if match :
+        if match:
             key = match.group(1)
             value = match.group(2)
-            return (key,value)
+            return (key, value)
         return None
-    
+
     def parse_link_from_href(self, html_str: str) -> Optional[str]:
         pattern = r'href="([^"]+)"'
         match = re.search(pattern, html_str)
-        if match :
+        if match:
             url = match.group(1)
             return url
         return None
-    
-    def split_table_row(self,row:str) -> List[str]:
-        return row.split('|')[1:-1]
-        
+
+    def split_table_row(self, row: str) -> List[str]:
+        return row.split("|")[1:-1]
+
     # for any job info with multiple line seperated by <br>
     def split_multiple_lines_from_github_table(self, string) -> List[str]:
-        return string.split('<br>')
+        return string.split("<br>")

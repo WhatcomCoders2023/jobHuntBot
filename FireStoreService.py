@@ -3,22 +3,31 @@ from datetime import datetime
 from typing import Union
 
 TIMESTAMP = "last_timestamp"
+
+
 class FireStoreService:
-    def __init__(self, project_id: str, collection_name="latest_commit", database="github-commit-data"):
+    def __init__(
+        self,
+        project_id: str,
+        collection_name="latest_commit",
+        database="github-commit-data",
+    ):
         self.db = firestore.Client(project=project_id, database=database)
         self.collection_name = collection_name
-    
+
     def fetch_last_timestamp(self, document_id: str) -> Union[datetime, None]:
-        doc_ref = self.db.collection(self.collection_name).document(document_id)       
+        doc_ref = self.db.collection(self.collection_name).document(document_id)
 
         try:
             doc = doc_ref.get()
             if doc.exists:
                 commit_timestamp = doc.to_dict().get(TIMESTAMP)
-                print(f"last timestamp from database {commit_timestamp} \n {type(commit_timestamp)}")
+                print(
+                    f"last timestamp from database {commit_timestamp} \n {type(commit_timestamp)}"
+                )
                 return commit_timestamp
             else:
-                 # Instantiate timestamp here
+                # Instantiate timestamp here
                 print("no timestamp in database. Instantiate a new one...")
                 # TODO: check if this time object work since it needs to be iso8601 format
                 current_time = datetime.now()
@@ -38,6 +47,8 @@ class FireStoreService:
             print(f"An error occurred: {e}")
 
     # for database class
-    def convert_timestamp_from_zulu_to_UTC_format(self, zulu_iso_string:str) -> datetime:
-        iso_string = zulu_iso_string.replace('Z', '+00:00')
+    def convert_timestamp_from_zulu_to_UTC_format(
+        self, zulu_iso_string: str
+    ) -> datetime:
+        iso_string = zulu_iso_string.replace("Z", "+00:00")
         return datetime.fromisoformat(iso_string)
