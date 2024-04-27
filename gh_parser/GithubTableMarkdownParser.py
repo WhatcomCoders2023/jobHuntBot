@@ -25,9 +25,11 @@ MONTHS = {
 class GithubTableMarkdownParser:
     def __init__(
         self,
+        logger,
         file_name: str,
         last_timestamp_in_db: datetime,
     ) -> None:
+        self.logger = logger
         self.file_name = file_name
         self.last_timestamp_in_db = last_timestamp_in_db
 
@@ -67,7 +69,7 @@ class GithubTableMarkdownParser:
         return job_postings
 
     def is_valid_job_posting(self, job_posting: JobPosting) -> bool:
-        print(self.last_timestamp_in_db)
+        self.logger.info(self.last_timestamp_in_db)
         try:
             if not job_posting.company_name:
                 return False

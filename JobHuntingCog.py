@@ -6,7 +6,8 @@ from typing import List
 
 
 class JobHuntingCog(commands.Cog):
-    def __init__(self, bot, channel_id: int, job_postings: List[JobPosting]):
+    def __init__(self, logger, bot, channel_id: int, job_postings: List[JobPosting]):
+        self.logger = logger
         self.bot = bot
         self.channel_id = channel_id
         self.job_postings = job_postings
@@ -16,7 +17,7 @@ class JobHuntingCog(commands.Cog):
             if channel is None:
                 raise Exception(f"Channel with ID {self.channel_id} not found.")
         except Exception as e:
-            print(e)
+            self.logger.error(e)
             raise
 
         await channel.send("Hunting for jobs...")
@@ -57,6 +58,6 @@ class JobHuntingCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print("Job Hunting Cog is ready!")
+        self.logger.info("Job Hunting Cog is ready!")
         channel = self.bot.get_channel(self.channel_id)
         await self.send_job_postings(channel)

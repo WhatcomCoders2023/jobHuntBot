@@ -9,12 +9,14 @@ from gh_parser.JobPosting import JobPosting
 class JobHuntingBot(commands.Bot):
     def __init__(
         self,
+        logger,
         filename: str,
         channel_id: int,
         job_postings: List[JobPosting],
         command_prefix="!",
         intents=discord.Intents.all(),
     ):
+        self.logger = logger
         self.filename = filename
         self.channel_id = channel_id
         self.job_postings = job_postings
@@ -22,6 +24,8 @@ class JobHuntingBot(commands.Bot):
 
     async def setup_hook(self):
         # Load your cogs here
-        await self.add_cog(JobHuntingCog(self, self.channel_id, self.job_postings))
+        await self.add_cog(
+            JobHuntingCog(self.logger, self, self.channel_id, self.job_postings)
+        )
         # Setup actions like sending a startup message can also go here
-        print("Bot setup complete!")
+        self.logger.info("Bot setup complete!")

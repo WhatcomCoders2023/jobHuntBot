@@ -8,10 +8,12 @@ TIMESTAMP = "last_timestamp"
 class FireStoreService:
     def __init__(
         self,
+        logger,
         project_id: str,
         collection_name="latest_commit",
         database="github-commit-data",
     ):
+        self.logger = logger
         self.db = firestore.Client(project=project_id, database=database)
         self.collection_name = collection_name
 
@@ -22,19 +24,17 @@ class FireStoreService:
             doc = doc_ref.get()
             if doc.exists:
                 commit_timestamp = doc.to_dict().get(TIMESTAMP)
-                print(
-                    f"last timestamp from database {commit_timestamp} \n {type(commit_timestamp)}"
-                )
+                self.logger.info(f"Latest timestamp from database {commit_timestamp}")
                 return commit_timestamp
             else:
                 # Instantiate timestamp here
-                print("no timestamp in database. Instantiate a new one...")
+                self.logger.info("No timestamp in database. Instantiate a new one...")
                 # TODO: check if this time object work since it needs to be iso8601 format
                 current_time = datetime.now()
                 self.db.update_last_timestamp(current_time)
                 return current_time
         except Exception as e:
-            print(f"An error occured: {e}")
+            self.logger.error(f"An error occured: {e}")
             return None
 
     def update_last_timestamp(self, document_id: str, new_timestamp: datetime):
@@ -42,9 +42,9 @@ class FireStoreService:
         doc_ref = self.db.collection(self.collection_name).document(document_id)
         try:
             doc_ref.update({TIMESTAMP: new_timestamp})
-            print(f"Last timestamp updated to {new_timestamp}")
+            self.logger.info(f"Latest timestamp updated to {new_timestamp}")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            self.logger.error(f"An error occurred: {e}")
 
     # for database class
     def convert_timestamp_from_zulu_to_UTC_format(
