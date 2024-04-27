@@ -8,9 +8,10 @@ from gh_parser.GithubTableMarkdownParser import GithubTableMarkdownParser
 from gh_parser.FileHandler import FileHandler
 from bot import JobHuntingBot
 from constants import REPO_NAMES, DUMMY_FILENAME, REPO_NAME_TO_PARSE_FLAG
-from logger import Logger
+from logger import init_logger
 
 load_dotenv()
+
 
 def access_secrets(project_id, secret_id, version_id="latest"):
     """
@@ -30,7 +31,7 @@ def access_secrets(project_id, secret_id, version_id="latest"):
 
 
 def main(data, context):
-    logger = Logger()
+    logger = init_logger()
     logger.debug("Running application...")
 
     project_id = os.getenv("PROJECT_ID")
@@ -40,7 +41,11 @@ def main(data, context):
     bot_token = access_secrets(
         project_id=project_id, secret_id="Job_hunting_discord_bot_token"
     )
-    # bot_token = os.getenv("DISCORD_BOT_TOKEN")
+    channel_id = int(os.getenv("WHATCOM_CHANNEL_ID"))
+
+    if os.getenv("DEV_MODE"):
+        bot_token = os.getenv("DISCORD_BOT_TOKEN")
+        channel_id = int(os.getenv("TEST_CHANNEL_ID"))
 
     # 1. fetch last timestamp from datastore
     db = FireStoreService(logger, project_id=os.getenv("PROJECT_NAME"))
@@ -62,8 +67,6 @@ def main(data, context):
                 job_postings_from_all_repo.extend(job_postings)
 
     if job_postings_from_all_repo:
-        # channel_id = int(os.getenv("TEST_CHANNEL_ID"))
-        channel_id = int(os.getenv("WHATCOM_CHANNEL_ID"))
         job_hunting_bot = JobHuntingBot(
             logger, DUMMY_FILENAME, channel_id, job_postings_from_all_repo
         )
