@@ -1,5 +1,4 @@
 import os
-import logging
 from dotenv import load_dotenv
 from FireStoreService import FireStoreService
 from google.cloud import secretmanager
@@ -9,35 +8,9 @@ from gh_parser.GithubTableMarkdownParser import GithubTableMarkdownParser
 from gh_parser.FileHandler import FileHandler
 from bot import JobHuntingBot
 from constants import REPO_NAMES, DUMMY_FILENAME, REPO_NAME_TO_PARSE_FLAG
+from logger import Logger
 
 load_dotenv()
-
-
-def init_logger():
-    logger = None
-
-    # Prod mode
-    if not os.getenv("DEV_MODE"):
-        import google.cloud.logging
-
-        client = google.cloud.logging.Client()
-        client.setup_logging()
-
-        return logging.getLogger()
-
-    # Dev mode
-    handler = logging.StreamHandler()
-    handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter("%(levelname)s - %(message)s")
-    handler.setFormatter(formatter)
-
-    logger = logging.getLogger("JobHuntLogger")
-    logger.setLevel(logging.DEBUG)
-    logger.propagate = False
-    logger.addHandler(handler)
-
-    return logger
-
 
 def access_secrets(project_id, secret_id, version_id="latest"):
     """
@@ -57,7 +30,7 @@ def access_secrets(project_id, secret_id, version_id="latest"):
 
 
 def main(data, context):
-    logger = init_logger()
+    logger = Logger()
     logger.debug("Running application...")
 
     project_id = os.getenv("PROJECT_ID")
